@@ -1,0 +1,135 @@
+[General]
+bypass-system = true
+skip-proxy = *.local, *.crashlytics.com
+tun-excluded-routes = 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12
+update-url = https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/All_In_One.conf
+
+[Rule]
+AND,((DOMAIN-SUFFIX,googlevideo.com),(PROTOCOL,UDP)),REJECT
+AND,((DOMAIN,youtubei.googleapis.com),(PROTOCOL,UDP)),REJECT
+
+[URL Rewrite]
+# Chặn quảng cáo Google Video
+^https?:\/\/[\w-]+\.googlevideo\.com\/(?!(dclk_video_ads|videoplayback\?)).+&oad _ reject-200
+
+# YouTube Ads
+^https?:\/\/(www|s)\.youtube\.com\/api\/stats\/ads _ reject-200
+^https?:\/\/(www|s)\.youtube\.com\/(pagead|ptracking) _ reject-200
+^https?:\/\/s\.youtube\.com\/api\/stats\/qoe\?adcontext _ reject-200
+
+# General Video Ad request
+(^https?:\/\/[\w-]+\.googlevideo\.com\/(?!dclk_video_ads).+?)&ctier=L(&.+?),ctier,(.+) $1$2$3 302
+
+[Header Rewrite]
+http-request '^https?://api.revenuecat.com/.+/(receipts$|subscribers/?(.*?)*$)' header-del x-revenuecat-etag
+http-request '^https?://api.revenuecat.com/.+/(receipts$|subscribers/?(.*?)*$)' header-del X-RevenueCat-ETag
+http-request ^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(:443)?)\/user-customization-service\/v1\/customize$ header-del if-none-match
+
+[Map Local]
+^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&oad 'data-type=text data="" status-code=200'
+
+[Script]
+
+#Sub-Store
+#hostname = sub.store
+Sub-Store Core = type=http-request,pattern=^https?:\/\/sub\.store\/((download)|api\/(preview|sync|(utils\/node-info))),script-path=https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store-1.min.js,requires-body=true,timeout=120
+Sub-Store Simple = type=http-request,pattern=^https?:\/\/sub\.store,script-path=https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store-0.min.js,requires-body=true
+Sub-Store Sync = type=cron,cronexp=0 0 * * *,wake-system=1,timeout=120,script-path=https://github.com/sub-store-org/Sub-Store/releases/latest/download/cron-sync-artifacts.min.js
+#************************************#
+
+#Youtube Premium (Search|Play Page|Short Video ||| PiP|Background Play)
+#hostname = *.googlevideo.com, youtubei.googleapis.com
+youtube.request = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|reel\/reel_watch_sequence|get_watch),requires-body=1,max-size=-1,binary-body-mode=1,engine=jsc,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/youtube.response.js
+youtube.response = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch))(\?(.*))?$,requires-body=1,max-size=-1,binary-body-mode=1,engine={{{script}}},script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/youtube.response.js,argument="{"lyricLang":"vi","captionLang":"vi","blockUpload":true,"blockImmersive":true,"debug":false}"
+#************************************#
+
+#SpotifyPremium
+#hostname = spclient.wg.spotify.com
+spotify-json = type=http-request,pattern=^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(:443)?)\/(artistview\/v1\/artist|album-entity-view\/v2\/album)\/,requires-body=0,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/spotify-json.js
+spotify-proto = type=http-response,pattern=^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(:443)?)\/(bootstrap\/v1\/bootstrap|user-customization-service\/v1\/customize)$,requires-body=1,binary-body-mode=1,max-size=0,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/spotify-proto.js,script-update-interval=0
+#************************************#
+
+#SoundCloudGo+
+#hostname= api-mobile.soundcloud.com
+SoundCloudGo+ = type=http-response,pattern=https://api-mobile.soundcloud.com/configuration/ios,requires-body=1,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/SoundCloudGoPlus.js
+#************************************#
+
+#VSCO
+VSCO = type=http-request ^https://api.revenuecat.com/.+/(receipts$|subscribers/?(.*?)*$) script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/VSCO.js, requires-body=true, timeout=60
+#************************************#
+
+#AlightMotion
+#hostname = us-central1-alight-creative.cloudfunctions.net
+AlightMotion = type=http-response,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/AlightMotion.js,pattern=^https:\/\/us-central1-alight-creative\.cloudfunctions\.net\/getAccountStatusAndLicenses,max-size=131072,requires-body=true,timeout=10,enable=true
+#************************************#
+
+#PicsArt
+#hostname = api.picsart.com
+PicsArt = type=http-request,pattern=^https:\/\/api\.picsart\.com\/gw-v2\/shop\/subscription\/apple\/purchases,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/PicsArt.js,requires-body=true,timeout=60
+PicsArtStorages = type=http-request,pattern=^https:\/\/api\.picsart\.com\/gw-v2\/cloud-storage\/v1\/me\/storages,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/PicsArtStorages.js,requires-body=true,timeout=60
+#************************************#
+
+#Wink
+#hostname = api-sub.meitu.com
+Wink = type=http-response,pattern=^https:\/\/api-sub\.meitu\.com\/v2\/user\/vip_info_by_group\.json,requires-body=1,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/WinkVipCrack.js
+#************************************#
+
+#Truecaller
+#hostname = premium*.truecaller.com
+Truecaller = type=http-response,pattern=^https:\/\/premium-[^.]+\.truecaller\.com\/v\d+\/(subscriptions\/status|products\/apple)(\?.*)?$,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/TrueCaller.js
+#************************************#
+
+#Lightroom
+#hostname =  photos.adobe.io
+Lightroom = type=http-response,pattern=^https:\/\/photos\.adobe\.io\/v\d\/accounts,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/lightroom.js,script-update-interval=-1
+#************************************#
+
+#Kinemaster
+#hostname =  api-account.kinemasters.com
+Kinemaster = type=http-response,pattern=^https:\/\/api-account\.kinemasters\.com\/v\d\/user\/subscribe$,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/Kinemaster.js
+#************************************#
+
+#CamScanner
+#hostname = ap*.intsig.net
+Camscanner = requires-body=1,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/camScanner.js,type=http-response,pattern= https:\/\/(api|api-cs.*)\.intsig\.net\/purchase\/cs\/query_property\?
+#************************************#
+
+#BeautyPlus
+#hostname = api.mr.pixocial.com, newbeee-api.beautyplus.com
+BeautyPlus = type=http-response, pattern=https:\/\/(api\.mr\.pixocial\.com\/v1\/manual_unlock|newbeee-api\.beautyplus\.com\/api\/v1\/asset\/balance), script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/BeautyPlus.js, requires-body=true, max-size=-1, timeout=60
+#************************************#
+
+#LocketGold
+#hostname = api.revenuecat.com, firebaseremoteconfig.googleapis.com
+revenuecat = type=http-response, pattern=^https:\/\/api\.revenuecat\.com\/.+\/(receipts$|subscribers\/[^/]+$), script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/Locket_DuyVinh09.js, requires-body=true, max-size=-1, timeout=60
+deleteHeader = type=http-request, pattern=^https:\/\/api\.revenuecat\.com\/.+\/(receipts|subscribers), script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/deleteHeader.js, timeout=60
+locket_rc = type=http-response, pattern=^https:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+, script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/Locket_Unlocked.js, requires-body=true, max-size=-1, timeout=60
+#************************************#
+
+#RevenueCatVip
+#hostname = api.revenuecat.com
+RevenueCatVip = type=http-response, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts$|subscribers\/[^/]+$), script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/revenuecat.js, requires-body=true, max-size=-1, timeout=60
+#RevenueCatDeleteHeader = type=http-request, pattern=^https:\/\/api\.(revenuecat|rc-backup)\.com\/.+\/(receipts|subscribers), script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/deleteHeader.js, timeout=60
+#************************************#
+
+#iTunes
+#hostname = buy.itunes.apple.com
+iTunes = type=http-response, pattern=^https?:\/\/buy\.itunes\.apple\.com\/verifyReceipt$, script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/iTunes.js, requires-body=true, max-size=-1, timeout=60
+#************************************#
+
+#Snow
+#hostname = user-snow-api.snow.me
+Snow = type=http-response, pattern=^https?:\/\/user-snow-api\.snow\.me\/v\d\/purchase\/subscription\/subscriber\/status, script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/Snow.js, requires-body=true, max-size=-1, timeout=60
+#************************************#
+
+#Meitu
+#hostname = h5.xiuxiu.meitu.com, api.xiuxiu.meitu.com
+Meitu = type=http-response,pattern=^https?:\/\/(h5|api)\.xiuxiu\.meitu\.com\/v\d\/(h\d\/vip|vip|user)\/,requires-body=1,script-path=https://raw.githubusercontent.com/duyvinh09/Module_IOS/refs/heads/main/js/MeiTuXiuXiu.js
+#************************************#
+
+[MITM]
+ca-passphrase = uzTU4scA
+h2 = true
+enable = true
+ca-p12 = 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
+hostname = %APPEND%, *.googlevideo.com, youtubei.googleapis.com, www.youtube.com, s.youtube.com, -redirector*.googlevideo.com, premium*.truecaller.com, sub.store, api.revenuecat.com, firebaseremoteconfig.googleapis.com, api.rc-backup.com, buy.itunes.apple.com, spclient.wg.spotify.com, *spclient.spotify.com, api-mobile.soundcloud.com, api.picsart.com, us-central1-alight-creative.cloudfunctions.net, api-sub.meitu.com, photos.adobe.io, , ap*.intsig.net, api-account.kinemasters.com, api.mr.pixocial.com, newbeee-api.beautyplus.com, user-snow-api.snow.me, h5.xiuxiu.meitu.com, api.xiuxiu.meitu.com, gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com
